@@ -1,0 +1,87 @@
+/*
+	Example: A tip calculation FIS (fuzzy inference system)
+	Calculates tip based on 'tiempo' and 'asistencia'
+
+									Pablo Cingolani 
+*/
+
+FUNCTION_BLOCK tipper	// Block definition (there may be more than one block per file)
+
+// Define input variables
+VAR_INPUT				
+	tiempo : REAL;
+	asistencia : REAL;
+END_VAR
+
+// Define output variable
+VAR_OUTPUT				
+	riesgont  : REAL;
+END_VAR
+
+// Fuzzify input variable 'tiempo': {'muy_rapido', 'rapido' , 'normal','lento','muy_lento'}
+FUZZIFY tiempo		
+	TERM muy_rapido := (85, 0) (90, 1) (95, 1) (100, 0); 
+	TERM rapido := (60, 0) (75, 1) (80, 1) (86, 0); 
+	TERM normal := (39, 0) (50, 1) (55, 1) (61, 0); 
+	TERM lento := (24, 0) (35, 1) (40, 0); 
+	TERM muy_lento := (0, 1) (25,0) (40, 0); 
+END_FUZZIFY
+
+// Fuzzify input variable 'asistencia': { 'no_falta', 'falta_poco','falta_mucho','falta_demasiado' }
+FUZZIFY asistencia			
+	TERM no_falta := (87, 0) (90, 1) (95, 1) (100, 0)  ;
+	TERM falta_poco := (75, 0) (75, 1) (80, 1) (85, 0);
+	TERM falta_mucho := (50, 0) (55, 1) (60, 1) (70, 0);
+	TERM falta_demasiado := (0, 1) (45, 1) (52, 0);
+END_FUZZIFY
+
+// Defzzzify output variable 'riesgont ' : {'muy_alto', 'alto', 'regular','muy_bajo','bajo' }
+DEFUZZIFY riesgont 			
+	TERM muy_alto := (0,1) (5,1) (10,0);
+	TERM alto := (8,0) (15,1) (20,0);
+	TERM regular  := (18,0) (25,1) (30,0);
+	TERM muy_bajo  := (28,0) (35,1) (38,0);
+	TERM bajo  := (36,0) (43,1) (50,0);
+	METHOD : COG;		// Use 'Center Of Gravity' defuzzification method
+	DEFAULT := 0;		// Default value is 0 (if no rule activates defuzzifier)
+END_DEFUZZIFY
+
+// Inference rules
+RULEBLOCK No1
+	AND : MIN;	// Use 'min' for 'and'
+	ACT : MIN;	// Use 'min' activation method
+	ACCU : MAX;	// Use 'max' accumulation method
+
+
+	RULE 1: IF tiempo IS muy_rapido AND asistencia IS no_falta  THEN riesgont  IS muy_bajo;
+	RULE 2: IF tiempo IS rapido AND asistencia IS no_falta  THEN riesgont  IS  bajo;
+	RULE 3: IF tiempo IS normal AND asistencia IS no_falta  THEN riesgont  IS bajo;
+	RULE 4: IF tiempo IS lento AND asistencia IS no_falta  THEN riesgont  IS  bajo;
+	RULE 5: IF tiempo IS muy_lento  AND asistencia IS no_falta  THEN riesgont  IS bajo;
+
+	RULE 6: IF tiempo IS muy_rapido AND asistencia IS  falta_poco  THEN riesgont  IS  bajo;
+	RULE 7: IF tiempo IS rapido AND asistencia IS  falta_poco  THEN riesgont  IS  bajo;
+	RULE 8: IF tiempo IS normal  AND asistencia IS  falta_poco  THEN riesgont  IS  bajo;
+	RULE 9: IF tiempo IS lento AND asistencia IS  falta_poco  THEN riesgont  IS  regular ;
+	RULE 10: IF tiempo IS muy_lento  AND asistencia IS  falta_poco  THEN riesgont  IS  regular ;
+
+	RULE 11: IF tiempo IS muy_rapido AND asistencia IS  falta_mucho  THEN riesgont  IS  regular;
+	RULE 12: IF tiempo IS  rapido AND asistencia IS  falta_mucho  THEN riesgont  IS  regular;
+	RULE 13: IF tiempo IS normal AND asistencia IS  falta_mucho  THEN riesgont  IS  regular;
+	RULE 14: IF tiempo IS lento  AND asistencia IS  falta_mucho  THEN riesgont  IS  alto;
+	RULE 15: IF tiempo IS  muy_lento AND asistencia IS  falta_mucho  THEN riesgont  IS  alto;
+
+
+
+	RULE 16: IF tiempo IS muy_rapido AND asistencia IS  falta_demasiado  THEN riesgont  IS  alto;
+	RULE 17: IF tiempo IS  rapido AND asistencia IS  falta_demasiado  THEN riesgont  IS  alto;
+	RULE 18: IF tiempo IS normal AND asistencia IS  falta_demasiado  THEN riesgont  IS  alto;
+	RULE 19: IF tiempo IS lento AND asistencia IS  falta_demasiado  THEN riesgont  IS  muy_alto;
+	RULE 20: IF tiempo IS muy_lento AND asistencia IS  falta_demasiado  THEN riesgont  IS  muy_alto;
+
+
+
+
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
